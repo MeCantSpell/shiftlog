@@ -173,7 +173,8 @@ def get_workers_hours_summary(
     grand_total_hours = 0.0
     total_shift_count = 0
     total_wages = 0.0
-    is_all_wage_not_set = False
+    any_wage_not_set = False
+    notes = None
     
     for worker in workers:
         shift_statement = select(Shift).where(Shift.worker_id == worker.id)
@@ -197,7 +198,7 @@ def get_workers_hours_summary(
             hourly_pay = None
             average_shift_wage = None
             worker_wages = None
-            is_all_wage_not_set = True
+            any_wage_not_set = True
 
         summaries.append(
             WorkerSummary(
@@ -210,16 +211,16 @@ def get_workers_hours_summary(
                 worker_wages=worker_wages
             )
         )
-
-
-    if is_all_wage_not_set:
-        total_wages = f"Total wages are {total_wages}. NOTE: not all workers have wages set."
+        
+    if any_wage_not_set:
+        notes="Note that not all workers have wages set."
         
     return OrgHoursSummary(
         workers=summaries,
         grand_total_hours=round(grand_total_hours, 2),
         total_shift_count=total_shift_count,
-        total_wages=total_wages
+        total_wages=total_wages,
+        notes=notes
     )
 
 

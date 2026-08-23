@@ -726,8 +726,10 @@ def test_summary_worker_shift_pay_no_null(client: TestClient):
     response = client.get(f"/workers/summary")
     body = response.json()
     assert "total_wages" in body
+    assert "notes" in body
     assert 25.25*10 + 20*10 == body["total_wages"]
-
+    assert body["notes"] == None
+    
 def test_summary_worker_shift_pay_with_null(client: TestClient):
 
     get_id_1_response = client.post("/workers", json={"name": "Jamie Lee",
@@ -774,5 +776,6 @@ def test_summary_worker_shift_pay_with_null(client: TestClient):
     response = client.get(f"/workers/summary")
     body = response.json()
     assert "total_wages" in body
-    assert f"{20*10}" in body["total_wages"]
-    assert "NOTE: not all workers have wages set." in body["total_wages"]
+    assert "notes" in body
+    assert body["total_wages"] == 20*10
+    assert "Note that not all workers have wages set." in body["notes"]
