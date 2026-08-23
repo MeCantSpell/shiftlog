@@ -156,9 +156,9 @@ def export_worker_list(session: Session = Depends(get_session)):
 
 @router.get("/summary", response_model=OrgHoursSummary)
 def get_workers_hours_summary(
-    start: Optional[datetime] = None,
-    end: Optional[datetime] = None,
-    session: Session = Depends(get_session),
+        start: Optional[datetime] = None,
+        end: Optional[datetime] = None,
+        session: Session = Depends(get_session),
 ):
     """
     GET request:
@@ -168,11 +168,13 @@ def get_workers_hours_summary(
     """
     statement = select(Worker)
     workers = session.exec(statement).all()
-
+    
     summaries = []
     grand_total_hours = 0.0
     total_shift_count = 0
-
+    total_wages = 0.0
+    is_all_wage_not_set = False
+    
     for worker in workers:
         shift_statement = select(Shift).where(Shift.worker_id == worker.id)
         if start is not None:
@@ -186,20 +188,38 @@ def get_workers_hours_summary(
         average_shift_hours = total_shift_hours / len(shifts) if len(shifts) != 0 else 0.0
         grand_total_hours += total_hours
         total_shift_count += len(shifts)
-    
+        if worker.pay != None:
+            hourly_pay = worker.pay
+            average_shift_wage = average_shift_hours * worker.pay
+            worker_wages = worker.pay * total_hours
+            total_wages += worker_wages
+        else:
+            hourly_pay = None
+            average_shift_wage = None
+            worker_wages = None
+            is_all_wage_not_set = True
+
         summaries.append(
             WorkerSummary(
                 worker_id=worker.id,
                 total_hours=total_shift_hours,
                 shift_count=len(shifts),
-                average_shift_hours=round(average_shift_hours, 2)
+                average_shift_hours=round(average_shift_hours, 2),
+                hourly_pay=hourly_pay,
+                average_shift_wage=average_shift_wage,
+                worker_wages=worker_wages
             )
         )
 
+
+    if is_all_wage_not_set:
+        total_wages = f"Total wages are {total_wages}. NOTE: not all workers have wages set."
+        
     return OrgHoursSummary(
         workers=summaries,
         grand_total_hours=round(grand_total_hours, 2),
-        total_shift_count=total_shift_count
+        total_shift_count=total_shift_count,
+        total_wages=total_wages
     )
 
 
@@ -243,10 +263,10 @@ def delete_worker(request: Request, worker_id: int, session: Session = Depends(g
 
 @router.get("/{worker_id}/summary", response_model=WorkerSummary)
 def get_worker_hours_summary(
-    worker_id: int,
-    start: Optional[datetime] = None,
-    end: Optional[datetime] = None,
-    session: Session = Depends(get_session),
+        worker_id: int,
+        start: Optional[datetime] = None,
+        end: Optional[datetime] = None,
+        session: Session = Depends(get_session),
 ):
     worker = session.get(Worker, worker_id)
     if worker is None:
@@ -262,11 +282,21 @@ def get_worker_hours_summary(
 
     total_hours = sum((shift.end_time - shift.start_time).total_seconds() / 3600 for shift in shifts)
     average_shift_hours = total_hours / len(shifts) if len(shifts) != 0 else 0.0
+    hourly_pay = None
+    average_shift_wage = None
+    worker_wages = None
+    if worker.pay != None:
+        hourly_pay = worker.pay
+        average_shift_wage = worker.pay*average_shift_hours
+        worker_wages = worker.pay*total_hours
 
     return WorkerSummary(
         worker_id=worker_id, 
         total_hours=total_hours, 
         shift_count=len(shifts),
-        average_shift_hours=round(average_shift_hours, 2)
-        )
+        average_shift_hours=round(average_shift_hours, 2),
+        hourly_pay=hourly_pay,
+        average_shift_wage=average_shift_wage,
+        worker_wages=worker_wages
+    )
 

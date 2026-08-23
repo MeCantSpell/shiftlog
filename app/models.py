@@ -106,12 +106,16 @@ class WorkerSummary(SQLModel):
     total_hours: float
     shift_count: int
     average_shift_hours: float
+    hourly_pay: float | None
+    average_shift_wage: float | None
+    worker_wages : float | None
 
 
 class OrgHoursSummary(SQLModel):
     workers: list[WorkerSummary]
     grand_total_hours: float
     total_shift_count: int
+    total_wages: float | str
 
 
 class RejectedShift(SQLModel):
