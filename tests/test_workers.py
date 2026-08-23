@@ -678,3 +678,101 @@ def test_summary_worker_shift_pay_null(client: TestClient):
     assert body["hourly_pay"] == None
     assert body["average_shift_wage"] == None
     assert body["worker_wages"] == None
+
+def test_summary_worker_shift_pay_no_null(client: TestClient):
+
+    get_id_1_response = client.post("/workers", json={"name": "Jamie Lee",
+                                                      "role": "Cook",
+                                                      "pay":20})
+    body = get_id_1_response.json()
+    worker_id = body["id"]
+    
+    client.post("/shifts", json={"worker_id": worker_id,
+                                 "start_time":"2026-08-23T08:00:00",
+                                 "end_time":"2026-08-23T12:00:00"})
+
+    client.post("/shifts", json={"worker_id":worker_id,
+                            "start_time":"2026-08-24T08:00:00",
+                            "end_time":"2026-08-24T14:00:00"})
+
+    get_id_2_response = client.post("/workers", json={"name": "Lee Jamie",
+                                                      "role": "Chef",
+                                                      "pay":25.25})
+    body = get_id_2_response.json()
+    worker_id = body["id"]
+    
+    client.post("/shifts", json={"worker_id": worker_id,
+                                 "start_time":"2026-08-23T08:00:00",
+                                 "end_time":"2026-08-23T12:00:00"})
+
+    client.post("/shifts", json={"worker_id":worker_id,
+                            "start_time":"2026-08-24T08:00:00",
+                            "end_time":"2026-08-24T14:00:00"})
+
+    get_id_3_response = client.post("/workers", json={"name": "Lamie Jee",
+                                                      "role": "Intern",
+                                                      "pay":0})
+    body = get_id_3_response.json()
+    worker_id = body["id"]
+    
+    client.post("/shifts", json={"worker_id": worker_id,
+                                 "start_time":"2026-08-23T08:00:00",
+                                 "end_time":"2026-08-23T12:00:00"})
+
+    client.post("/shifts", json={"worker_id":worker_id,
+                            "start_time":"2026-08-24T08:00:00",
+                            "end_time":"2026-08-24T14:00:00"})
+    
+    response = client.get(f"/workers/summary")
+    body = response.json()
+    assert "total_wages" in body
+    assert 25.25*10 + 20*10 == body["total_wages"]
+
+def test_summary_worker_shift_pay_with_null(client: TestClient):
+
+    get_id_1_response = client.post("/workers", json={"name": "Jamie Lee",
+                                                      "role": "Cook",
+                                                      "pay":20})
+    body = get_id_1_response.json()
+    worker_id = body["id"]
+    
+    client.post("/shifts", json={"worker_id": worker_id,
+                                 "start_time":"2026-08-23T08:00:00",
+                                 "end_time":"2026-08-23T12:00:00"})
+
+    client.post("/shifts", json={"worker_id":worker_id,
+                            "start_time":"2026-08-24T08:00:00",
+                            "end_time":"2026-08-24T14:00:00"})
+
+    get_id_2_response = client.post("/workers", json={"name": "Lee Jamie",
+                                                      "role": "Chef"})
+    body = get_id_2_response.json()
+    worker_id = body["id"]
+    
+    client.post("/shifts", json={"worker_id": worker_id,
+                                 "start_time":"2026-08-23T08:00:00",
+                                 "end_time":"2026-08-23T12:00:00"})
+
+    client.post("/shifts", json={"worker_id":worker_id,
+                            "start_time":"2026-08-24T08:00:00",
+                            "end_time":"2026-08-24T14:00:00"})
+
+    get_id_3_response = client.post("/workers", json={"name": "Lamie Jee",
+                                                      "role": "Intern",
+                                                      "pay":0})
+    body = get_id_3_response.json()
+    worker_id = body["id"]
+    
+    client.post("/shifts", json={"worker_id": worker_id,
+                                 "start_time":"2026-08-23T08:00:00",
+                                 "end_time":"2026-08-23T12:00:00"})
+
+    client.post("/shifts", json={"worker_id":worker_id,
+                            "start_time":"2026-08-24T08:00:00",
+                            "end_time":"2026-08-24T14:00:00"})
+    
+    response = client.get(f"/workers/summary")
+    body = response.json()
+    assert "total_wages" in body
+    assert f"{20*10}" in body["total_wages"]
+    assert "NOTE: not all workers have wages set." in body["total_wages"]
